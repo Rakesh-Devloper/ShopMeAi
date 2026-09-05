@@ -1,0 +1,12 @@
+import { Router } from "express";
+import { register, login, getMe, updateProfile, changePassword, uploadAvatar } from "../controllers/authController.js";
+import { protect } from "../middleware/authMiddleware.js";
+const router = Router();
+router.post("/register", register);
+router.post("/login", login);
+router.get("/me", protect, getMe);
+router.put("/profile", protect, updateProfile);
+router.put("/avatar", protect, uploadAvatar);
+router.post("/avatar", protect, uploadAvatar);
+router.post("/change-password", protect, changePassword);
+export default router;

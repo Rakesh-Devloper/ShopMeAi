@@ -1,0 +1,22 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import React from "react";
+import { Routes, Route } from "react-router-dom";
+import { ProtectedRoute } from "./ProtectedRoute";
+import { HomePage } from "../pages/HomePage";
+import { ProductsPage } from "../pages/ProductsPage";
+import { ProductDetailPage } from "../pages/ProductDetailPage";
+import { CartPage } from "../pages/CartPage";
+import { CheckoutPage } from "../pages/CheckoutPage";
+import { OrdersPage } from "../pages/OrdersPage";
+import { OrderDetailPage } from "../pages/OrderDetailPage";
+import { TrackOrderPage } from "../pages/TrackOrderPage";
+import { LoginPage } from "../pages/LoginPage";
+import { RegisterPage } from "../pages/RegisterPage";
+import { ProfilePage } from "../pages/ProfilePage";
+import { DashboardPage } from "../pages/DashboardPage";
+import { AdminPage } from "../pages/AdminPage";
+import { NotFoundPage } from "../pages/NotFoundPage";
+export const AppRoutes = () => {
+    return (_jsxs(Routes, { children: [_jsx(Route, { path: "/", element: _jsx(HomePage, {}) }), _jsx(Route, { path: "/products", element: _jsx(ProductsPage, {}) }), _jsx(Route, { path: "/products/:id", element: _jsx(ProductDetailPage, {}) }), _jsx(Route, { path: "/cart", element: _jsx(CartPage, {}) }), _jsx(Route, { path: "/track-order", element: _jsx(TrackOrderPage, {}) }), _jsx(Route, { path: "/login", element: _jsx(LoginPage, {}) }), _jsx(Route, { path: "/register", element: _jsx(RegisterPage, {}) }), _jsx(Route, { path: "/checkout", element: _jsx(ProtectedRoute, { children: _jsx(CheckoutPage, {}) }) }), _jsx(Route, { path: "/orders", element: _jsx(ProtectedRoute, { children: _jsx(OrdersPage, {}) }) }), _jsx(Route, { path: "/orders/:id", element: _jsx(ProtectedRoute, { children: _jsx(OrderDetailPage, {}) }) }), _jsx(Route, { path: "/profile", element: _jsx(ProtectedRoute, { children: _jsx(ProfilePage, {}) }) }), _jsx(Route, { path: "/dashboard", element: _jsx(ProtectedRoute, { children: _jsx(DashboardPage, {}) }) }), _jsx(Route, { path: "/admin", element: _jsx(ProtectedRoute, { requireAdmin: true, children: _jsx(AdminPage, {}) }) }), _jsx(Route, { path: "*", element: _jsx(NotFoundPage, {}) })] }));
+};
+export default AppRoutes;

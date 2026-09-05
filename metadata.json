@@ -1,0 +1,6 @@
+{
+  "name": "ShopMe",
+  "description": "AI-Powered E-Commerce Platform with smart recommendations, real-time order tracking, and intelligent shopping assistant.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

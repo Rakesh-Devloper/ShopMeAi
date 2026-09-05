@@ -1,0 +1,10 @@
+import { Router } from "express";
+import { getCart, addToCart, updateCartQty, removeFromCart, clearCart } from "../controllers/cartController.js";
+import { optionalAuth } from "../middleware/authMiddleware.js";
+const router = Router();
+router.get("/", optionalAuth, getCart);
+router.post("/add", optionalAuth, addToCart);
+router.post("/update", optionalAuth, updateCartQty);
+router.post("/remove", optionalAuth, removeFromCart);
+router.post("/clear", optionalAuth, clearCart);
+export default router;
