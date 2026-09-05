@@ -1,8 +1,14 @@
 import axios from "axios";
 import authService from "./authService";
 
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "https://shopmeai-zki4.onrender.com/api";
+
+console.log("API URL:", API_URL);
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "/api",
+  baseURL: API_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -24,8 +30,9 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => response,
+
   (error) => {
-    if (error.response && error.response.status === 401) {
+    if (error.response?.status === 401) {
       authService.removeToken();
       authService.clearStoredUser();
 
