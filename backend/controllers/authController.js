@@ -1,29 +1,55 @@
 import bcrypt from "bcryptjs";
 import { store } from "../db/store.js";
-import { generateToken } from "../middleware/authMiddleware.js";
+import { generateToken } from "../utils/generateToken.js";
+import { isMongoConnected } from "../config/db.js";
+import { UserModel } from "../models/User.js";
+
+function toSafeUser(user) {
+    if (!user)
+        return null;
+    const plainUser = typeof user.toObject === "function" ? user.toObject() : user;
+    const { passwordHash, _id, __v, ...safeUser } = plainUser;
+    return safeUser;
+}
+
 export async function register(req, res) {
     try {
         const { name, email, password } = req.body;
         if (!name || !email || !password) {
             return res.status(400).json({ success: false, message: "Please provide all required fields" });
         }
-        const existingUser = store.getUserByEmail(email);
+        const normalizedEmail = email.trim().toLowerCase();
+        const existingUser = isMongoConnected()
+            ? await UserModel.findOne({ email: normalizedEmail })
+            : store.getUserByEmail(normalizedEmail);
         if (existingUser) {
             return res.status(400).json({ success: false, message: "User already exists with this email" });
         }
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
-        const user = store.createUser({
+        const userId = `usr-${Date.now()}`;
+        const userData = {
+            id: userId,
             name,
-            email,
+            email: normalizedEmail,
             passwordHash,
-            role: email.includes("admin") ? "admin" : "user"
-        });
-        const token = generateToken(user.id);
+            role: normalizedEmail.includes("admin") ? "admin" : "user",
+            avatar: "",
+            addresses: [],
+            wishlist: []
+        };
+        const user = isMongoConnected()
+            ? await UserModel.create(userData)
+            : store.createUser(userData);
+        const safeUser = toSafeUser(user);
+        if (isMongoConnected()) {
+            store.users.push({ ...safeUser, passwordHash });
+        }
+        const token = generateToken(safeUser.id);
         return res.status(201).json({
             success: true,
             message: "Registration successful",
-            user,
+            user: safeUser,
             token
         });
     }
@@ -37,18 +63,25 @@ export async function login(req, res) {
         if (!email || !password) {
             return res.status(400).json({ success: false, message: "Please provide email and password" });
         }
-        const user = store.getUserByEmail(email);
+        const normalizedEmail = email.trim().toLowerCase();
+        const user = isMongoConnected()
+            ? await UserModel.findOne({ email: normalizedEmail })
+            : store.getUserByEmail(normalizedEmail);
         if (!user) {
             return res.status(401).json({ success: false, message: "Invalid email or password" });
         }
-        const isMatch = await bcrypt.compare(password, user.passwordHash);
+        const plainUser = typeof user.toObject === "function" ? user.toObject() : user;
+        const isMatch = await bcrypt.compare(password, plainUser.passwordHash);
         // Allow demo convenience for the seeded user
         const isDemoPass = password === "password123" || password === "admin123" || isMatch;
         if (!isDemoPass) {
             return res.status(401).json({ success: false, message: "Invalid email or password" });
         }
-        const { passwordHash, ...safeUser } = user;
-        const token = generateToken(user.id);
+        const safeUser = toSafeUser(user);
+        if (isMongoConnected() && !store.getUserById(safeUser.id)) {
+            store.users.push(plainUser);
+        }
+        const token = generateToken(safeUser.id);
         return res.json({
             success: true,
             message: "Login successful",
@@ -78,8 +111,13 @@ export async function updateProfile(req, res) {
         const user = req.user;
         if (!user)
             return res.status(401).json({ success: false, message: "Not authenticated" });
-        const updated = store.updateUser(user.id, req.body);
-        return res.json({ success: true, user: updated, message: "Profile updated successfully" });
+        const updated = isMongoConnected()
+            ? await UserModel.findOneAndUpdate({ id: user.id }, { $set: req.body }, { new: true }).lean()
+            : store.updateUser(user.id, req.body);
+        if (!updated)
+            return res.status(404).json({ success: false, message: "User not found" });
+        store.updateUser(user.id, updated);
+        return res.json({ success: true, user: toSafeUser(updated), message: "Profile updated successfully" });
     }
     catch (err) {
         return res.status(500).json({ success: false, message: err.message });
@@ -105,6 +143,9 @@ export async function changePassword(req, res) {
         }
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(newPassword, salt);
+        if (isMongoConnected()) {
+            await UserModel.findOneAndUpdate({ id: user.id }, { $set: { passwordHash } });
+        }
         fullUser.passwordHash = passwordHash;
         return res.json({ success: true, message: "Password updated successfully" });
     }
@@ -121,12 +162,17 @@ export async function uploadAvatar(req, res) {
         if (!avatar) {
             return res.status(400).json({ success: false, message: "Avatar image data is required" });
         }
-        const updated = store.updateUser(user.id, { avatar });
+        const updated = isMongoConnected()
+            ? await UserModel.findOneAndUpdate({ id: user.id }, { $set: { avatar } }, { new: true }).lean()
+            : store.updateUser(user.id, { avatar });
+        if (!updated)
+            return res.status(404).json({ success: false, message: "User not found" });
+        store.updateUser(user.id, updated);
         return res.json({
             success: true,
             message: "Profile image updated successfully",
-            avatar: updated?.avatar || avatar,
-            user: updated
+            avatar: updated.avatar || avatar,
+            user: toSafeUser(updated)
         });
     }
     catch (err) {
