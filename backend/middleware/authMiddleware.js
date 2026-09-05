@@ -1,13 +1,10 @@
 import jwt from "jsonwebtoken";
 import { store } from "../db/store.js";
-import { isMongoConnected } from "../config/db.js";
-import { UserModel } from "../models/User.js";
-import { generateToken } from "../utils/generateToken.js";
-
-function getJwtSecret() {
-    return process.env.JWT_SECRET || "shopai-default-jwt-secret-development-mode-token";
+const JWT_SECRET = process.env.JWT_SECRET || "shopai_super_secret_jwt_key_2026";
+export function generateToken(id) {
+    return jwt.sign({ id }, JWT_SECRET, { expiresIn: "7d" });
 }
-export async function protect(req, res, next) {
+export function protect(req, res, next) {
     let token;
     if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
         token = req.headers.authorization.split(" ")[1];
@@ -23,16 +20,11 @@ export async function protect(req, res, next) {
         return;
     }
     try {
-        const decoded = jwt.verify(token, getJwtSecret());
-        const user = isMongoConnected()
-            ? await UserModel.findOne({ id: decoded.id }).lean()
-            : store.getUserById(decoded.id);
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const user = store.getUserById(decoded.id);
         if (!user) {
             res.status(401).json({ success: false, message: "User not found" });
             return;
-        }
-        if (isMongoConnected() && !store.getUserById(user.id)) {
-            store.users.push(user);
         }
         req.user = user;
         next();
@@ -56,21 +48,16 @@ export function admin(req, res, next) {
     }
 }
 export const adminOnly = admin;
-export async function optionalAuth(req, _res, next) {
+export function optionalAuth(req, _res, next) {
     let token;
     if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
         token = req.headers.authorization.split(" ")[1];
     }
     if (token) {
         try {
-            const decoded = jwt.verify(token, getJwtSecret());
-            const user = isMongoConnected()
-                ? await UserModel.findOne({ id: decoded.id }).lean()
-                : store.getUserById(decoded.id);
+            const decoded = jwt.verify(token, JWT_SECRET);
+            const user = store.getUserById(decoded.id);
             if (user) {
-                if (isMongoConnected() && !store.getUserById(user.id)) {
-                    store.users.push(user);
-                }
                 req.user = user;
             }
         }

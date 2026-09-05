@@ -30,24 +30,7 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => response,
-
   (error) => {
-    if (error.response?.status === 401) {
-      authService.removeToken();
-      authService.clearStoredUser();
-
-      if (typeof window !== "undefined") {
-        const currentPath = window.location.pathname;
-
-        if (
-          !currentPath.includes("/login") &&
-          !currentPath.includes("/register")
-        ) {
-          window.location.href = "/login";
-        }
-      }
-    }
-
     const message =
       error.response?.data?.message ||
       error.message ||

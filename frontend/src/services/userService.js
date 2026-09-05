@@ -10,7 +10,7 @@ export const userService = {
     },
     async changePassword(currentPassword, newPassword) {
         try {
-            const res = await api.post("/auth/change-password", {
+            const res = await api.put("/auth/password", {
                 currentPassword,
                 newPassword
             });

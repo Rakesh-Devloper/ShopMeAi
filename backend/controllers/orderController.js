@@ -54,17 +54,42 @@ export async function getOrderById(req, res) {
 export async function trackOrderByNumber(req, res) {
     try {
         const { orderNumber } = req.query;
+
         if (!orderNumber) {
-            return res.status(400).json({ success: false, message: "Please provide an order number" });
+            return res.status(400).json({
+                success: false,
+                message: "Please provide an order number"
+            });
         }
-        const order = store.getOrderById(orderNumber);
+
+        // Get all orders and find by order number
+        const orders = store.getOrders();
+
+        const order = orders.find(
+            (item) =>
+                item.orderNumber &&
+                item.orderNumber.toLowerCase() === orderNumber.toLowerCase()
+        );
+
         if (!order) {
-            return res.status(404).json({ success: false, message: "No order found with this tracking number" });
+            return res.status(404).json({
+                success: false,
+                message: "No order found with this tracking number"
+            });
         }
-        return res.json({ success: true, order });
-    }
-    catch (err) {
-        return res.status(500).json({ success: false, message: err.message });
+
+        return res.json({
+            success: true,
+            order
+        });
+
+    } catch (err) {
+        console.error("Track order error:", err);
+
+        return res.status(500).json({
+            success: false,
+            message: err.message
+        });
     }
 }
 export async function getAllOrders(req, res) {
