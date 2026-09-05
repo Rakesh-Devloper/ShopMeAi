@@ -23,11 +23,12 @@ export async function startServer() {
 
   const PORT = process.env.PORT || 5000;
 
-  // Connect Database
+  // Connect MongoDB
   await connectDB();
 
-  // Body Parser
+  // Body parsers
   app.use(express.json({ limit: "25mb" }));
+
   app.use(
     express.urlencoded({
       extended: true,
@@ -35,69 +36,110 @@ export async function startServer() {
     })
   );
 
-  // ===============================
-  // CORS CONFIGURATION
-  // ===============================
+  // ==========================================
+  // FINAL CORS CONFIGURATION
+  // ==========================================
 
-  const allowedOrigins = [
-    "http://localhost:5173",
-    "https://shop-me-22ga1yxuk-rakesh-frontends-projects.vercel.app",
-  ];
+  const corsOptions = {
+    origin: function (origin, callback) {
 
-  app.use(
-    cors({
-      origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
-          callback(null, true);
-        } else {
-          console.log("Blocked by CORS:", origin);
-          callback(new Error("Not allowed by CORS"));
-        }
-      },
-      credentials: true,
-    })
-  );
+      // Allow requests without origin
+      // Example: Postman, server-to-server requests
+      if (!origin) {
+        return callback(null, true);
+      }
 
-  // ===============================
+      // Allow localhost
+      if (origin.startsWith("http://localhost:")) {
+        return callback(null, true);
+      }
+
+      // Allow ALL Vercel deployments
+      if (origin.endsWith(".vercel.app")) {
+        return callback(null, true);
+      }
+
+      console.log("CORS Blocked:", origin);
+
+      return callback(
+        new Error("Not allowed by CORS")
+      );
+    },
+
+    credentials: true,
+
+    methods: [
+      "GET",
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE",
+      "OPTIONS",
+    ],
+
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+    ],
+  };
+
+  app.use(cors(corsOptions));
+
+  // ==========================================
   // HEALTH CHECK
-  // ===============================
+  // ==========================================
 
   app.get("/api/health", (_req, res) => {
     res.json({
       status: "ok",
+
       service: "ShopMe MERN Backend Server",
+
       database: isMongoConnected()
         ? "mongodb"
         : "in-memory-fallback",
+
       gemini: getGemini()
         ? "configured"
         : "not-configured",
+
       timestamp: new Date().toISOString(),
     });
   });
 
-  // ===============================
+  // ==========================================
   // API ROUTES
-  // ===============================
+  // ==========================================
 
   app.use("/api/auth", authRoutes);
+
   app.use("/api/users", userRoutes);
+
   app.use("/api/products", productRoutes);
+
   app.use("/api/orders", orderRoutes);
+
   app.use("/api/cart", cartRoutes);
+
   app.use("/api/payment", paymentRoutes);
+
   app.use("/api/ai", aiRoutes);
+
   app.use("/api/admin", adminRoutes);
 
-  // ===============================
+  // ==========================================
   // ERROR HANDLER
-  // ===============================
+  // ==========================================
 
   app.use(errorHandler);
 
+  // ==========================================
+  // START SERVER
+  // ==========================================
+
   const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(
-      `ShopMe MERN Production Server running on port ${PORT}`
+      `🚀 ShopMe Backend Server running on port ${PORT}`
     );
   });
 
